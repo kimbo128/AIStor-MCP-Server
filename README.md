@@ -1,6 +1,8 @@
 # AIStor MCP Server
 
-A comprehensive Model Context Protocol (MCP) server for interacting with AIStor and MinIO object stores. This server enables AI agents like Claude to seamlessly manage object storage through natural language interactions.
+A comprehensive Model Context Protocol (MCP) server for interacting with MinIO and AIStor object stores. This server enables AI agents like Claude to seamlessly manage object storage through natural language interactions.
+
+**✨ Successfully tested and working with Railway deployment and remote MCP connections!**
 
 ## 🚀 Features
 
@@ -11,41 +13,37 @@ A comprehensive Model Context Protocol (MCP) server for interacting with AIStor 
 - **Get tags** - Object and bucket tag management
 - **Presigned URLs** - Secure temporary access links
 - **Download objects** - Fetch files to local filesystem
-- **Local file listing** - Browse allowed directories
 
-### ✍️ Write Operations (--allow-write)
+### ✍️ Write Operations
 - **Create buckets** - Initialize new storage containers
 - **Upload objects** - Store files from local filesystem
 - **Text to object** - Create objects from text content
 - **Copy objects** - Duplicate between buckets
 - **Set tags** - Tag objects and buckets
-- **Versioning control** - Manage bucket versioning
 
-### 🗑️ Delete Operations (--allow-delete)
+### 🗑️ Delete Operations
 - **Delete objects** - Remove files and versions
 - **Delete buckets** - Remove containers (with force option)
 - **Move objects** - Transfer between locations
 
-### 🔧 Admin Operations (--allow-admin)
+### 🔧 Admin Operations
 - **Cluster info** - Health and performance metrics
 - **Usage statistics** - Storage utilization data
-- **Lifecycle policies** - ILM configuration
-- **Replication settings** - Cross-region replication
-- **Bucket policies** - Access control management
+- **Admin functions** - Comprehensive cluster management
 
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js 18+ 
-- Access to MinIO/AIStor instance
+- Node.js 18+
+- MinIO/AIStor instance
 - Claude Desktop or compatible MCP client
 
 ### Quick Start
 
 1. **Clone and install:**
 ```bash
-git clone https://github.com/kimbo128/minio-mcp.git
-cd minio-mcp
+git clone https://github.com/kimbo128/AIStor-MCP-Server.git
+cd AIStor-MCP-Server
 npm install
 ```
 
@@ -70,11 +68,11 @@ node server.js --help
 | `MINIO_ACCESS_KEY` | - | Access key for authentication |
 | `MINIO_SECRET_KEY` | - | Secret key for authentication |
 | `MINIO_USE_SSL` | `true` | Use SSL/TLS connection |
-| `ALLOW_WRITE` | `false` | Enable write operations |
-| `ALLOW_DELETE` | `false` | Enable delete operations |
-| `ALLOW_ADMIN` | `false` | Enable admin operations |
-| `ALLOWED_DIRECTORIES` | `/tmp` | Comma-separated allowed directories |
-| `MAX_KEYS` | `1000` | Maximum objects to list |
+| `ALLOW_WRITE` | `true` | Enable write operations |
+| `ALLOW_DELETE` | `true` | Enable delete operations |
+| `ALLOW_ADMIN` | `true` | Enable admin operations |
+| `HTTP_MODE` | `true` | Enable HTTP mode for Railway |
+| `PORT` | `8080` | Server port |
 
 ### Command Line Options
 
@@ -85,19 +83,58 @@ Options:
   --allow-write              Enable write operations
   --allow-delete             Enable delete operations  
   --allow-admin              Enable admin operations
-  --allowed-directories DIR  Local directory access (comma-separated)
-  --max-keys NUM             Max objects in listings
+  --http                     Enable HTTP mode
+  --port NUM                 Server port
   --help                     Show help
+```
+
+## 🚂 Railway Deployment
+
+### Deploy to Railway
+
+1. **Create Railway service from GitHub:**
+```bash
+# Connect your GitHub repository to Railway
+# Railway will auto-detect Node.js and deploy
+```
+
+2. **Set environment variables in Railway:**
+```bash
+MINIO_ENDPOINT=your-minio-endpoint.com
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_USE_SSL=true
+ALLOW_WRITE=true
+ALLOW_DELETE=true
+ALLOW_ADMIN=true
+HTTP_MODE=true
+NODE_TLS_REJECT_UNAUTHORIZED=0
+```
+
+3. **Deploy automatically via git push**
+
+### Railway Configuration File
+
+The included `railway.json` ensures proper deployment:
+
+```json
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
 ```
 
 ## 🔌 Claude Desktop Integration
 
-### Add to Claude Configuration
+### Local STDIO Mode
 
-Edit your Claude Desktop config file:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+For local development, configure Claude Desktop:
 
 ```json
 {
@@ -105,12 +142,10 @@ Edit your Claude Desktop config file:
     "aistor": {
       "command": "node",
       "args": [
-        "/path/to/minio-mcp/server.js",
+        "/path/to/AIStor-MCP-Server/server.js",
         "--allow-write",
         "--allow-delete", 
-        "--allow-admin",
-        "--allowed-directories",
-        "/Users/YOUR_USERNAME/Downloads,/tmp"
+        "--allow-admin"
       ],
       "env": {
         "MINIO_ENDPOINT": "your-endpoint.com",
@@ -123,52 +158,31 @@ Edit your Claude Desktop config file:
 }
 ```
 
-## 🚂 Railway Deployment
+### Remote Railway Mode
 
-### Deploy to Railway
+For Railway deployment, use mcp-remote:
 
-1. **Create Railway service:**
-```bash
-railway login
-railway init
-railway link
-```
-
-2. **Set environment variables:**
-```bash
-railway variables set MINIO_ENDPOINT=your-endpoint.com
-railway variables set MINIO_ACCESS_KEY=your-access-key
-railway variables set MINIO_SECRET_KEY=your-secret-key
-railway variables set MINIO_USE_SSL=true
-railway variables set ALLOW_WRITE=true
-railway variables set ALLOW_DELETE=true
-railway variables set ALLOW_ADMIN=true
-```
-
-3. **Deploy:**
-```bash
-railway up
-```
-
-### Railway Environment Setup
-
-Add these variables in Railway dashboard:
-
-```
-MINIO_ENDPOINT=your-minio-endpoint.com
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
-MINIO_USE_SSL=true
-ALLOW_WRITE=true
-ALLOW_DELETE=true
-ALLOW_ADMIN=true
-ALLOWED_DIRECTORIES=/tmp,/app
-MAX_KEYS=1000
+```json
+{
+  "mcpServers": {
+    "aistor": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://your-railway-app.up.railway.app/mcp"
+      ],
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
 ```
 
 ## 💬 Usage Examples
 
-### Basic Queries
+### Basic Operations
 ```
 "List all my buckets"
 "Show contents of my-data bucket"  
@@ -178,136 +192,67 @@ MAX_KEYS=1000
 
 ### File Operations
 ```
-"Upload report.pdf from Downloads to bucket documents"
-"Download config.json from bucket settings to my Desktop"
-"Copy backup.sql from bucket-a to bucket-b"
-"Move old-file.txt from temp to archive bucket"
-```
-
-### Management Tasks
-```
-"Create bucket called project-files"
+"Create a bucket called project-files"
+"Upload text content to bucket/file.txt"
 "Delete empty test bucket"
-"Set tags on document.pdf: category=report, status=final"
-"Show storage usage across all buckets"
+"Show storage usage statistics"
 ```
 
 ### Admin Operations
 ```
 "Show cluster health and performance"
 "Get data usage statistics"
-"Check versioning status for bucket main"
-"Display lifecycle rules for bucket archives"
+"Display admin information"
 ```
 
 ## 🛠️ Available Tools
 
-### Core Operations
-- `list_buckets` - List all buckets
-- `list_bucket_contents` - List objects in bucket
-- `get_object_metadata` - Object metadata and properties
-- `get_object_tags` - Retrieve object tags
-- `get_object_presigned_url` - Generate temporary access URLs
-- `download_object` - Download to local filesystem
-- `list_local_files` - Browse local directories
-- `list_allowed_directories` - Show permitted paths
+The server provides the following MCP tools:
 
-### Write Tools (--allow-write)
-- `create_bucket` - Create new buckets
-- `upload_object` - Upload from local files
-- `text_to_object` - Create objects from text
-- `copy_object` - Copy between buckets
-- `set_object_tags` - Tag management
-- `set_bucket_tags` - Bucket tagging
-- `set_bucket_versioning` - Version control
-
-### Delete Tools (--allow-delete)
-- `delete_object` - Remove objects/versions
-- `delete_bucket` - Remove buckets
-- `move_object` - Move between buckets
-
-### Admin Tools (--allow-admin)
-- `get_admin_info` - Cluster information
-- `get_data_usage_info` - Storage statistics
-- `get_bucket_versioning` - Version settings
-- `get_bucket_tags` - Bucket tag info
-- `get_bucket_lifecycle` - ILM policies
-- `get_bucket_replication` - Replication config
+- **list_buckets** - List all buckets
+- **list_bucket_contents** - List objects in bucket
+- **get_object_metadata** - Object metadata and properties
+- **get_object_presigned_url** - Generate temporary access URLs
+- **create_bucket** - Create new buckets
+- **text_to_object** - Create objects from text
+- **delete_object** - Remove objects
+- **delete_bucket** - Remove buckets
+- **get_admin_info** - Cluster information
+- **get_data_usage_info** - Storage statistics
 
 ## 🔒 Security
 
 ### Permission Levels
-- **Read-only** (default): Safe browsing and downloading
+- **Read-only** mode available for safe operations
 - **Write enabled**: Object and bucket creation
-- **Delete enabled**: Removal operations
+- **Delete enabled**: Removal operations  
 - **Admin enabled**: Cluster management
-
-### Path Security
-- Local file access restricted to `--allowed-directories`
-- Path traversal attacks prevented
-- Relative path resolution secured
 
 ### Best Practices
 - Use least privilege principle
 - Rotate access keys regularly
+- Use SSL/TLS in production
 - Monitor admin operations
-- Restrict allowed directories
-- Use SSL/TLS connections
+- Validate environment variables
 
 ## 🐛 Troubleshooting
 
-### Connection Issues
-```bash
-# Test MinIO connectivity
-node -e "
-const { Client } = require('minio');
-const client = new Client({
-  endPoint: 'your-endpoint',
-  accessKey: 'your-key',
-  secretKey: 'your-secret',
-  useSSL: true
-});
-client.listBuckets().then(console.log).catch(console.error);
-"
-```
+### Common Issues
 
-### Permission Errors
-- Check `--allow-*` flags match your needs
-- Verify allowed directories include target paths
-- Confirm MinIO credentials have required permissions
+**Connection Errors:**
+- Verify MINIO_ENDPOINT is correct API endpoint (not console)
+- Check credentials match your MinIO instance
+- Ensure SSL settings match your server setup
 
-### Claude Integration
+**Railway Deployment:**
+- Confirm all environment variables are set
+- Check Railway logs for startup errors
+- Verify HTTP_MODE=true for remote access
+
+**Claude Integration:**
 - Restart Claude Desktop after config changes
-- Check config file JSON syntax
-- Verify file paths are absolute
-- Review Claude error logs
-
-## 📋 API Reference
-
-### Tool Schema
-Each tool follows MCP standard with:
-- `name` - Tool identifier
-- `description` - Human readable purpose
-- `inputSchema` - JSON schema for parameters
-
-### Response Format
-All tools return:
-```json
-{
-  "content": [
-    {
-      "type": "text", 
-      "text": "Result data or JSON"
-    }
-  ]
-}
-```
-
-### Error Handling
-- Permission errors for disabled operations
-- Path validation for local file access
-- MinIO client errors with context
-- Graceful degradation for missing features
+- Check MCP server logs for connection attempts
+- Verify JSON-RPC responses are properly formatted
 
 ## 🤝 Contributing
 
@@ -317,14 +262,6 @@ All tools return:
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open Pull Request
 
-### Development Setup
-```bash
-git clone https://github.com/kimbo128/minio-mcp.git
-cd minio-mcp
-npm install
-npm run dev  # Start with inspector
-```
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -333,14 +270,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Model Context Protocol](https://modelcontextprotocol.io/) by Anthropic
 - [MinIO](https://min.io/) for excellent object storage
+- [Railway](https://railway.app/) for seamless deployment
 - [Claude](https://claude.ai/) for AI agent capabilities
 
-## 📞 Support
+## ⭐ Star History
 
-- 📧 Issues: [GitHub Issues](https://github.com/kimbo128/minio-mcp/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/kimbo128/minio-mcp/discussions)
-- 📖 Documentation: [Wiki](https://github.com/kimbo128/minio-mcp/wiki)
+If this project helped you, please consider giving it a star! It helps others discover this tool.
 
 ---
 
-**Ready to supercharge your AI workflows with object storage! 🚀**
+**Ready to supercharge your AI workflows with object storage!** 🚀
+
+For questions or support, please open an issue on GitHub.
