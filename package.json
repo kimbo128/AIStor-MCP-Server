@@ -1,0 +1,38 @@
+{
+  "name": "aistor-mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for AIStor/MinIO object storage",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --inspect server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "aistor",
+    "minio",
+    "object-storage",
+    "ai",
+    "claude"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "minio": "^8.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/aistor-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/aistor-mcp-server/issues"
+  },
+  "homepage": "https://github.com/yourusername/aistor-mcp-server#readme"
+}
