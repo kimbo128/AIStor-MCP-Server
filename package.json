@@ -1,7 +1,7 @@
 {
-  "name": "minio-mcp-server",
+  "name": "aistor-mcp-server",
   "version": "1.0.0",
-  "description": "Model Context Protocol server for MinIO/AIStor object storage - AI agents integration",
+  "description": "Model Context Protocol server for MinIO/AIStor object storage - Remote deployment ready",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "dev": "node --inspect server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint *.js",
-    "inspector": "npx @modelcontextprotocol/inspector node server.js"
+    "inspector": "npx @modelcontextprotocol/inspector node server.js",
+    "railway": "node server.js --http --allow-write --allow-delete --allow-admin"
   },
   "keywords": [
     "mcp",
@@ -23,7 +24,10 @@
     "s3",
     "storage",
     "agent",
-    "automation"
+    "automation",
+    "railway",
+    "remote",
+    "http"
   ],
   "author": "kimbo128",
   "license": "MIT",
@@ -40,12 +44,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kimbo128/minio-mcp.git"
+    "url": "https://github.com/kimbo128/AIStor-MCP-Server.git"
   },
   "bugs": {
-    "url": "https://github.com/kimbo128/minio-mcp/issues"
+    "url": "https://github.com/kimbo128/AIStor-MCP-Server/issues"
   },
-  "homepage": "https://github.com/kimbo128/minio-mcp#readme",
+  "homepage": "https://github.com/kimbo128/AIStor-MCP-Server#readme",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/kimbo128"
