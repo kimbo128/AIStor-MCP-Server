@@ -962,9 +962,370 @@ class AistorMCPServer {
   }
 
   async run() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('AIStor MCP Server running on stdio');
+    if (process.env.HTTP_MODE === 'true' || process.argv.includes('--http')) {
+      const port = process.env.PORT || 8080;
+      
+      // HTTP-based MCP Server implementation
+      const { createServer } = await import('http');
+      const { parse } = await import('url');
+      
+      const httpServer = createServer((req, res) => {
+        // CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Content-Type', 'application/json');
+        
+        // Handle CORS preflight
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+        
+        const url = parse(req.url, true);
+        
+        if (url.pathname === '/health') {
+          res.writeHead(200);
+          res.end(JSON.stringify({ 
+            status: 'healthy', 
+            service: 'aistor-mcp-server',
+            version: '1.0.0',
+            endpoint: this.config.endpoint,
+            features: {
+              writeEnabled: this.config.allowWrite,
+              deleteEnabled: this.config.allowDelete,
+              adminEnabled: this.config.allowAdmin
+            }
+          }));
+          return;
+        }
+        
+        if (url.pathname === '/mcp') {
+          if (req.method === 'GET') {
+            // Return server info for GET requests
+            res.writeHead(200);
+            res.end(JSON.stringify({
+              jsonrpc: "2.0",
+              result: {
+                protocolVersion: "2025-06-18",
+                capabilities: {
+                  tools: {}
+                },
+                serverInfo: {
+                  name: "aistor-mcp-server",
+                  version: "1.0.0"
+                }
+              },
+              id: 1
+            }));
+            return;
+          }
+          
+          if (req.method === 'POST') {
+            let body = '';
+            req.on('data', chunk => {
+              body += chunk.toString();
+            });
+            
+            req.on('end', async () => {
+              try {
+                const request = JSON.parse(body);
+                const response = await this.handleMCPRequest(request);
+                res.writeHead(200);
+                res.end(JSON.stringify(response));
+              } catch (error) {
+                res.writeHead(400);
+                res.end(JSON.stringify({
+                  jsonrpc: "2.0",
+                  error: {
+                    code: -32700,
+                    message: "Parse error",
+                    data: error.message
+                  },
+                  id: null
+                }));
+              }
+            });
+            return;
+          }
+        }
+        
+        // 404 for other paths
+        res.writeHead(404);
+        res.end(JSON.stringify({ error: 'Not Found' }));
+      });
+      
+      httpServer.listen(port, '0.0.0.0', () => {
+        console.error(`AIStor MCP Server running on HTTP port ${port}`);
+        console.error(`Health: http://0.0.0.0:${port}/health`);
+        console.error(`MCP: http://0.0.0.0:${port}/mcp`);
+      });
+      
+    } else {
+      // STDIO mode for local development
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+      console.error('AIStor MCP Server running on stdio');
+    }
+  }
+  
+  // HTTP MCP Request Handler
+  async handleMCPRequest(request) {
+    try {
+      const { method, params, id } = request;
+      
+      switch (method) {
+        case 'initialize':
+          return {
+            jsonrpc: "2.0",
+            result: {
+              protocolVersion: "2025-06-18",
+              capabilities: {
+                tools: {}
+              },
+              serverInfo: {
+                name: "aistor-mcp-server",
+                version: "1.0.0"
+              }
+            },
+            id
+          };
+          
+        case 'initialized':
+          return {
+            jsonrpc: "2.0",
+            result: {},
+            id
+          };
+          
+        case 'tools/list':
+          const tools = await this.getToolsList();
+          return {
+            jsonrpc: "2.0",
+            result: { tools },
+            id
+          };
+          
+        case 'tools/call':
+          const result = await this.callTool(params.name, params.arguments || {});
+          return {
+            jsonrpc: "2.0",
+            result,
+            id
+          };
+          
+        default:
+          return {
+            jsonrpc: "2.0",
+            error: {
+              code: -32601,
+              message: "Method not found",
+              data: `Unknown method: ${method}`
+            },
+            id
+          };
+      }
+    } catch (error) {
+      return {
+        jsonrpc: "2.0",
+        error: {
+          code: -32603,
+          message: "Internal error",
+          data: error.message
+        },
+        id: request.id || null
+      };
+    }
+  }
+
+  // Get tools list for HTTP mode
+  async getToolsList() {
+    const tools = [
+      {
+        name: 'list_buckets',
+        description: 'List all buckets in the AIStor object store',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'list_bucket_contents',
+        description: 'List objects in a bucket',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            bucket: { type: 'string', description: 'Bucket name' },
+            prefix: { type: 'string', description: 'Object prefix filter' }
+          },
+          required: ['bucket']
+        }
+      },
+      {
+        name: 'get_object_metadata',
+        description: 'Get object metadata',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            bucket: { type: 'string', description: 'Bucket name' },
+            object: { type: 'string', description: 'Object name' }
+          },
+          required: ['bucket', 'object']
+        }
+      },
+      {
+        name: 'get_object_presigned_url',
+        description: 'Generate presigned URL for object access',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            bucket: { type: 'string', description: 'Bucket name' },
+            object: { type: 'string', description: 'Object name' },
+            expiry: { type: 'number', description: 'Expiration in seconds' }
+          },
+          required: ['bucket', 'object']
+        }
+      }
+    ];
+    
+    // Add write operations
+    if (this.config.allowWrite) {
+      tools.push(
+        {
+          name: 'create_bucket',
+          description: 'Create a new bucket',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              bucket: { type: 'string', description: 'Bucket name' }
+            },
+            required: ['bucket']
+          }
+        },
+        {
+          name: 'text_to_object',
+          description: 'Create object from text',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              bucket: { type: 'string', description: 'Bucket name' },
+              object: { type: 'string', description: 'Object name' },
+              text: { type: 'string', description: 'Text content' }
+            },
+            required: ['bucket', 'object', 'text']
+          }
+        }
+      );
+    }
+    
+    // Add delete operations
+    if (this.config.allowDelete) {
+      tools.push(
+        {
+          name: 'delete_object',
+          description: 'Delete an object',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              bucket: { type: 'string', description: 'Bucket name' },
+              object: { type: 'string', description: 'Object name' }
+            },
+            required: ['bucket', 'object']
+          }
+        },
+        {
+          name: 'delete_bucket',
+          description: 'Delete a bucket',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              bucket: { type: 'string', description: 'Bucket name' },
+              force: { type: 'boolean', description: 'Force delete non-empty bucket' }
+            },
+            required: ['bucket']
+          }
+        }
+      );
+    }
+    
+    // Add admin operations
+    if (this.config.allowAdmin) {
+      tools.push(
+        {
+          name: 'get_admin_info',
+          description: 'Get cluster admin information',
+          inputSchema: {
+            type: 'object',
+            properties: {}
+          }
+        },
+        {
+          name: 'get_data_usage_info',
+          description: 'Get storage usage statistics',
+          inputSchema: {
+            type: 'object',
+            properties: {}
+          }
+        }
+      );
+    }
+    
+    return tools;
+  }
+
+  // Call tool for HTTP mode
+  async callTool(name, args) {
+    try {
+      switch (name) {
+        case 'list_buckets':
+          return await this.listBuckets();
+        case 'list_bucket_contents':
+          return await this.listBucketContents(args.bucket, args.prefix);
+        case 'get_object_metadata':
+          return await this.getObjectMetadata(args.bucket, args.object);
+        case 'get_object_presigned_url':
+          return await this.getObjectPresignedUrl(args.bucket, args.object, args.expiry);
+        case 'create_bucket':
+          this.checkWritePermission();
+          return await this.createBucket(args.bucket);
+        case 'text_to_object':
+          this.checkWritePermission();
+          return await this.textToObject(args.bucket, args.object, args.text);
+        case 'delete_object':
+          this.checkDeletePermission();
+          return await this.deleteObject(args.bucket, args.object);
+        case 'delete_bucket':
+          this.checkDeletePermission();
+          return await this.deleteBucket(args.bucket, args.force);
+        case 'get_admin_info':
+          this.checkAdminPermission();
+          return await this.getAdminInfo();
+        case 'get_data_usage_info':
+          this.checkAdminPermission();
+          return await this.getDataUsageInfo();
+        default:
+          throw new Error(`Unknown tool: ${name}`);
+      }
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${error.message}`
+          }
+        ]
+      };
+    }
+  }
+
+  // Helper method to count available tools
+  async getToolCount() {
+    let count = 8; // Basic tools
+    if (this.config.allowWrite) count += 7;
+    if (this.config.allowDelete) count += 3;
+    if (this.config.allowAdmin) count += 6;
+    return count;
   }
 }
 
@@ -990,6 +1351,12 @@ function parseArgs() {
       case '--max-keys':
         config.maxKeys = parseInt(args[++i], 10) || 1000;
         break;
+      case '--http':
+        config.httpMode = true;
+        break;
+      case '--port':
+        config.port = parseInt(args[++i], 10) || 8080;
+        break;
       case '--help':
         console.log(`
 AIStor MCP Server - Model Context Protocol Server for MinIO/AIStor
@@ -1002,6 +1369,8 @@ Options:
   --allow-admin              Enable admin operations (get cluster info, usage stats)
   --allowed-directories DIR  Comma-separated list of allowed local directories (default: /tmp)
   --max-keys NUM             Maximum number of objects to list (default: 1000)
+  --http                     Run in HTTP mode instead of STDIO (for web deployment)
+  --port NUM                 Port for HTTP mode (default: 8080)
   --help                     Show this help message
 
 Environment Variables:
@@ -1014,13 +1383,18 @@ Environment Variables:
   ALLOW_ADMIN                Enable admin operations (true/false)
   ALLOWED_DIRECTORIES        Comma-separated allowed directories
   MAX_KEYS                   Maximum keys to return in listings
+  HTTP_MODE                  Run in HTTP mode (true/false)
+  PORT                       Port for HTTP mode (default: 8080)
 
 Examples:
-  # Read-only server
+  # Read-only server (STDIO mode)
   node server.js
 
-  # Full permissions
+  # Full permissions (STDIO mode)
   node server.js --allow-write --allow-delete --allow-admin
+
+  # HTTP mode for web deployment
+  node server.js --http --port 3000
 
   # Custom directory access
   node server.js --allowed-directories /home/user/data,/tmp
@@ -1037,6 +1411,8 @@ Examples:
     if (key === 'allowAdmin') process.env.ALLOW_ADMIN = value.toString();
     if (key === 'allowedDirectories') process.env.ALLOWED_DIRECTORIES = value.join(',');
     if (key === 'maxKeys') process.env.MAX_KEYS = value.toString();
+    if (key === 'httpMode') process.env.HTTP_MODE = value.toString();
+    if (key === 'port') process.env.PORT = value.toString();
   });
 }
 
