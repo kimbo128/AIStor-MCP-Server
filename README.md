@@ -44,17 +44,15 @@ A comprehensive Model Context Protocol (MCP) server for interacting with AIStor 
 
 1. **Clone and install:**
 ```bash
-git clone https://github.com/yourusername/aistor-mcp-server.git
-cd aistor-mcp-server
+git clone https://github.com/kimbo128/minio-mcp.git
+cd minio-mcp
 npm install
 ```
 
 2. **Configure environment:**
 ```bash
-export MINIO_ENDPOINT="your-minio-endpoint.com"
-export MINIO_ACCESS_KEY="your-access-key"
-export MINIO_SECRET_KEY="your-secret-key"
-export MINIO_USE_SSL="true"
+cp .env.example .env
+# Edit .env with your MinIO credentials
 ```
 
 3. **Test the server:**
@@ -107,7 +105,7 @@ Edit your Claude Desktop config file:
     "aistor": {
       "command": "node",
       "args": [
-        "/path/to/aistor-mcp-server/server.js",
+        "/path/to/minio-mcp/server.js",
         "--allow-write",
         "--allow-delete", 
         "--allow-admin",
@@ -157,7 +155,6 @@ railway up
 Add these variables in Railway dashboard:
 
 ```
-# Mit:
 MINIO_ENDPOINT=your-minio-endpoint.com
 MINIO_ACCESS_KEY=your-access-key
 MINIO_SECRET_KEY=your-secret-key
@@ -322,8 +319,8 @@ All tools return:
 
 ### Development Setup
 ```bash
-git clone https://github.com/yourusername/aistor-mcp-server.git
-cd aistor-mcp-server
+git clone https://github.com/kimbo128/minio-mcp.git
+cd minio-mcp
 npm install
 npm run dev  # Start with inspector
 ```
@@ -340,9 +337,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 📧 Issues: [GitHub Issues](https://github.com/yourusername/aistor-mcp-server/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/aistor-mcp-server/discussions)
-- 📖 Documentation: [Wiki](https://github.com/yourusername/aistor-mcp-server/wiki)
+- 📧 Issues: [GitHub Issues](https://github.com/kimbo128/minio-mcp/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/kimbo128/minio-mcp/discussions)
+- 📖 Documentation: [Wiki](https://github.com/kimbo128/minio-mcp/wiki)
 
 ---
 
