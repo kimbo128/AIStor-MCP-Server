@@ -157,9 +157,10 @@ railway up
 Add these variables in Railway dashboard:
 
 ```
-MINIO_ENDPOINT=console-production-7175.up.railway.app
-MINIO_ACCESS_KEY=78HClijCHznSsNYDtlpv
-MINIO_SECRET_KEY=knKxWMn79ilx6GZsJno4DoPAjboBOY9rWYlv6lIv
+# Mit:
+MINIO_ENDPOINT=your-minio-endpoint.com
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
 MINIO_USE_SSL=true
 ALLOW_WRITE=true
 ALLOW_DELETE=true
