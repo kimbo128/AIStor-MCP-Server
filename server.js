@@ -549,175 +549,6 @@ class AistorMCPServer {
         content: [
           {
             type: 'text',
-            text: `No tags found for bucket ${bucket}`,
-          },
-        ],
-      };
-    }
-  }
-
-  async getBucketLifecycle(bucket) {
-    try {
-      const lifecycle = await this.minioClient.getBucketLifecycle(bucket);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(lifecycle, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `No lifecycle configuration found for bucket ${bucket}`,
-          },
-        ],
-      };
-    }
-  }
-
-  async getBucketReplication(bucket) {
-    try {
-      const replication = await this.minioClient.getBucketReplication(bucket);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(replication, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `No replication configuration found for bucket ${bucket}`,
-          },
-        ],
-      };
-    }
-  }
-
-  // Utility methods
-  validatePath(filePath) {
-    const resolvedPath = path.resolve(filePath);
-    const isAllowed = this.config.allowedDirectories.some(allowedDir => 
-      resolvedPath.startsWith(path.resolve(allowedDir))
-    );
-    
-    if (!isAllowed) {
-      throw new Error(`Access denied: ${filePath} is not in allowed directories: ${this.config.allowedDirectories.join(', ')}`);
-    }
-    
-    return resolvedPath;
-  }
-
-  async run() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('AIStor MCP Server running on stdio');
-  }
-}
-
-// CLI argument parsing
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const config = {};
-  
-  for (let i = 0; i < args.length; i++) {
-    switch (args[i]) {
-      case '--allow-write':
-        config.allowWrite = true;
-        break;
-      case '--allow-delete':
-        config.allowDelete = true;
-        break;
-      case '--allow-admin':
-        config.allowAdmin = true;
-        break;
-      case '--allowed-directories':
-        config.allowedDirectories = args[++i]?.split(',') || ['/tmp'];
-        break;
-      case '--max-keys':
-        config.maxKeys = parseInt(args[++i], 10) || 1000;
-        break;
-      case '--help':
-        console.log(`
-AIStor MCP Server - Model Context Protocol Server for MinIO/AIStor
-
-Usage: node server.js [options]
-
-Options:
-  --allow-write              Enable write operations (create buckets, upload objects)
-  --allow-delete             Enable delete operations (delete objects, buckets)
-  --allow-admin              Enable admin operations (get cluster info, usage stats)
-  --allowed-directories DIR  Comma-separated list of allowed local directories (default: /tmp)
-  --max-keys NUM             Maximum number of objects to list (default: 1000)
-  --help                     Show this help message
-
-Environment Variables:
-  MINIO_ENDPOINT             MinIO server endpoint (default: play.min.io)
-  MINIO_ACCESS_KEY           MinIO access key
-  MINIO_SECRET_KEY           MinIO secret key
-  MINIO_USE_SSL              Use SSL connection (default: true)
-  ALLOW_WRITE                Enable write operations (true/false)
-  ALLOW_DELETE               Enable delete operations (true/false)
-  ALLOW_ADMIN                Enable admin operations (true/false)
-  ALLOWED_DIRECTORIES        Comma-separated allowed directories
-  MAX_KEYS                   Maximum keys to return in listings
-
-Examples:
-  # Read-only server
-  node server.js
-
-  # Full permissions
-  node server.js --allow-write --allow-delete --allow-admin
-
-  # Custom directory access
-  node server.js --allowed-directories /home/user/data,/tmp
-        `);
-        process.exit(0);
-        break;
-    }
-  }
-  
-  // Override environment variables with CLI args
-  Object.entries(config).forEach(([key, value]) => {
-    if (key === 'allowWrite') process.env.ALLOW_WRITE = value.toString();
-    if (key === 'allowDelete') process.env.ALLOW_DELETE = value.toString();
-    if (key === 'allowAdmin') process.env.ALLOW_ADMIN = value.toString();
-    if (key === 'allowedDirectories') process.env.ALLOWED_DIRECTORIES = value.join(',');
-    if (key === 'maxKeys') process.env.MAX_KEYS = value.toString();
-  });
-}
-
-// Main execution
-if (import.meta.url === `file://${process.argv[1]}`) {
-  parseArgs();
-  const server = new AistorMCPServer();
-  
-  process.on('SIGINT', async () => {
-    console.error('\nShutting down AIStor MCP Server...');
-    process.exit(0);
-  });
-  
-  server.run().catch((error) => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  });
-}tags, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
             text: `No tags found for object ${object} in bucket ${bucket}`,
           },
         ],
@@ -963,8 +794,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   // Admin operations
   async getAdminInfo() {
     try {
-      // This would require MinIO admin client for full functionality
-      // For now, return basic connection info
       const info = {
         endpoint: this.config.endpoint,
         useSSL: this.config.useSSL,
@@ -1056,4 +885,173 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(
+            text: JSON.stringify(tags, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `No tags found for bucket ${bucket}`,
+          },
+        ],
+      };
+    }
+  }
+
+  async getBucketLifecycle(bucket) {
+    try {
+      const lifecycle = await this.minioClient.getBucketLifecycle(bucket);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(lifecycle, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `No lifecycle configuration found for bucket ${bucket}`,
+          },
+        ],
+      };
+    }
+  }
+
+  async getBucketReplication(bucket) {
+    try {
+      const replication = await this.minioClient.getBucketReplication(bucket);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(replication, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `No replication configuration found for bucket ${bucket}`,
+          },
+        ],
+      };
+    }
+  }
+
+  // Utility methods
+  validatePath(filePath) {
+    const resolvedPath = path.resolve(filePath);
+    const isAllowed = this.config.allowedDirectories.some(allowedDir => 
+      resolvedPath.startsWith(path.resolve(allowedDir))
+    );
+    
+    if (!isAllowed) {
+      throw new Error(`Access denied: ${filePath} is not in allowed directories: ${this.config.allowedDirectories.join(', ')}`);
+    }
+    
+    return resolvedPath;
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('AIStor MCP Server running on stdio');
+  }
+}
+
+// CLI argument parsing
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const config = {};
+  
+  for (let i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--allow-write':
+        config.allowWrite = true;
+        break;
+      case '--allow-delete':
+        config.allowDelete = true;
+        break;
+      case '--allow-admin':
+        config.allowAdmin = true;
+        break;
+      case '--allowed-directories':
+        config.allowedDirectories = args[++i]?.split(',') || ['/tmp'];
+        break;
+      case '--max-keys':
+        config.maxKeys = parseInt(args[++i], 10) || 1000;
+        break;
+      case '--help':
+        console.log(`
+AIStor MCP Server - Model Context Protocol Server for MinIO/AIStor
+
+Usage: node server.js [options]
+
+Options:
+  --allow-write              Enable write operations (create buckets, upload objects)
+  --allow-delete             Enable delete operations (delete objects, buckets)
+  --allow-admin              Enable admin operations (get cluster info, usage stats)
+  --allowed-directories DIR  Comma-separated list of allowed local directories (default: /tmp)
+  --max-keys NUM             Maximum number of objects to list (default: 1000)
+  --help                     Show this help message
+
+Environment Variables:
+  MINIO_ENDPOINT             MinIO server endpoint (default: play.min.io)
+  MINIO_ACCESS_KEY           MinIO access key
+  MINIO_SECRET_KEY           MinIO secret key
+  MINIO_USE_SSL              Use SSL connection (default: true)
+  ALLOW_WRITE                Enable write operations (true/false)
+  ALLOW_DELETE               Enable delete operations (true/false)
+  ALLOW_ADMIN                Enable admin operations (true/false)
+  ALLOWED_DIRECTORIES        Comma-separated allowed directories
+  MAX_KEYS                   Maximum keys to return in listings
+
+Examples:
+  # Read-only server
+  node server.js
+
+  # Full permissions
+  node server.js --allow-write --allow-delete --allow-admin
+
+  # Custom directory access
+  node server.js --allowed-directories /home/user/data,/tmp
+        `);
+        process.exit(0);
+        break;
+    }
+  }
+  
+  // Override environment variables with CLI args
+  Object.entries(config).forEach(([key, value]) => {
+    if (key === 'allowWrite') process.env.ALLOW_WRITE = value.toString();
+    if (key === 'allowDelete') process.env.ALLOW_DELETE = value.toString();
+    if (key === 'allowAdmin') process.env.ALLOW_ADMIN = value.toString();
+    if (key === 'allowedDirectories') process.env.ALLOWED_DIRECTORIES = value.join(',');
+    if (key === 'maxKeys') process.env.MAX_KEYS = value.toString();
+  });
+}
+
+// Main execution
+if (import.meta.url === `file://${process.argv[1]}`) {
+  parseArgs();
+  const server = new AistorMCPServer();
+  
+  process.on('SIGINT', async () => {
+    console.error('\nShutting down AIStor MCP Server...');
+    process.exit(0);
+  });
+  
+  server.run().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}
