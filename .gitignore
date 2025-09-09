@@ -3,6 +3,8 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
 
 # Runtime files
 *.log
@@ -12,12 +14,25 @@ pids/
 *.seed
 *.pid.lock
 
-# Environment variables
+# Environment variables (NEVER commit these!)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.backup
+
+# Sensitive configuration files
+config.local.json
+claude_desktop_config.json
+credentials.json
+secrets.json
+
+# Private data
+*credentials*
+*secrets*
+*keys*
+*password*
 
 # IDE files
 .vscode/
@@ -25,6 +40,7 @@ pids/
 *.swp
 *.swo
 *~
+.DS_Store
 
 # OS generated files
 .DS_Store
@@ -40,19 +56,20 @@ coverage/
 .coverage
 .nyc_output
 *.lcov
+.jest/
 
 # Build outputs
 dist/
 build/
 out/
+.next/
+.nuxt/
 
 # Temporary files
 tmp/
 temp/
 *.tmp
 *.temp
-
-# Runtime data
 *.tgz
 *.tar.gz
 
@@ -62,13 +79,35 @@ temp/
 # Optional eslint cache
 .eslintcache
 
-# Railway
+# Railway deployment
 .railway/
 
-# Local configuration
-config.local.json
-claude_desktop_config.json
+# Docker
+.dockerignore
+Dockerfile.prod
+docker-compose.override.yml
+
+# Local development
+*.local
+.cache/
+
+# Package manager lock files (uncomment if you want to ignore them)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Backup files
 *.bak
 *.backup
+*~.nib
+local.properties
